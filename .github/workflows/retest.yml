@@ -1,0 +1,49 @@
+# TEMPLATE — copy to the PILOT REPO as `.github/workflows/retest.yml`.
+#
+# Independent CI gate (plan §6, S1/S7). Runs the TRUSTED test suite on the
+# EXACT PR head commit. Forge's own "passed" is NOT trusted — this is the
+# platform-enforced verdict. Forge must NOT be able to edit this file
+# (protected by CODEOWNERS + a ruleset — see branch-protection-runbook.md).
+name: Forge CI (independent retest)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# Least privilege: read-only. No write, no PR, no checks/statuses write (S4/S6).
+permissions:
+  contents: read
+
+concurrency:
+  group: forge-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  retest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # S1: check out the EXACT PR head SHA, never the branch ref (TOCTOU).
+      # SHA-pin actions before production (S6) — replace @vN with a commit SHA.
+      - name: Checkout exact PR head SHA
+        uses: actions/checkout@v4 # TODO(S6): pin to a commit SHA
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5 # TODO(S6): pin to a commit SHA
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest pytest-asyncio
+
+      # The trusted, agent-uneditable suite. Adjust the command per pilot repo.
+      - name: Run trusted test suite
+        run: pytest -q
+# NOTE: no `secrets.*` are referenced anywhere in this job (S6) — a PR from an
+# untrusted branch must never gain access to repository secrets.
