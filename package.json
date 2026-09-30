@@ -1,0 +1,18 @@
+{
+  "name": "devto-publisher",
+  "version": "1.0.0",
+  "description": "Publish health tracking trends article to Dev.to",
+  "main": "publishDevto.js",
+  "type": "module",
+  "scripts": {
+    "publish": "node publishDevto.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nock": "^13.5.4"
+  }
+}
